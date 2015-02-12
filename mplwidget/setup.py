@@ -5,11 +5,12 @@ Created on Mar 20, 2014
 @author: strandha
 '''
 
-def configuration(parent_package='',top_path=None):
+
+def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration
-    config = Configuration('mplwidget',parent_package,top_path)
+    config = Configuration('mplwidget', parent_package, top_path)
     config.add_subpackage('icons')
-        
+
     return config
 
 if __name__ == '__main__':
