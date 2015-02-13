@@ -4,24 +4,22 @@ Created on Feb 9, 2015
 @author: strandha
 '''
 
-import lmfit
 import matplotlib as mpl
 import numpy as np
 from .axis_span import AxisSpan
+from .model_widget import ModelWidget
 
-from PyQt4 import QtCore, QtGui
-
-MODELS = {'Gaussian': lmfit.models.GaussianModel,
-          'Lorentzian': lmfit.models.LorentzianModel}
+from PyQt4 import QtGui
 
 
 def get_axes(artist):
-    if type(artist) == mpl.lines.Line2D:
-        axes = artist.axes
+    if hasattr(artist, 'get_axes'):
+        axes = artist.get_axes()
     elif type(artist) == mpl.container.BarContainer:
         axes = artist.patches[0].axes
     else:
-        raise NotImplementedError
+        msg = 'get_axes is not implemented for {0}'.format(type(artist))
+        raise NotImplementedError(msg)
 
     return axes
 
@@ -34,8 +32,13 @@ def get_data(artist):
         w = np.array([p.get_width() for p in artist.patches])
         x += w/2.
         y = np.array([p.get_height() for p in artist.patches])
+    elif type(artist) == mpl.patches.Polygon:
+        x, y = zip(*artist.get_xy())
+        x = np.array(x)
+        y = np.array(y)
     else:
-        raise NotImplementedError
+        msg = 'get_data is not implemented for {0}'.format(type(artist))
+        raise NotImplementedError(msg)
 
     return x, y
 
@@ -45,7 +48,8 @@ class FitWidget(QtGui.QDialog):
     classdocs
     '''
     model = None
-    range = None
+    model_dict = {}
+    range_ = None
 
     def __init__(self, parent=None, artist=None):
         '''
@@ -55,12 +59,27 @@ class FitWidget(QtGui.QDialog):
 
         super(FitWidget, self).__init__(parent=parent)
 
+        self.setWindowTitle('Fit Tool')
+
         layout = QtGui.QVBoxLayout()
 
-        modelCombo = QtGui.QComboBox(self)
-        modelCombo.addItems(MODELS.keys())
-        modelCombo.currentIndexChanged[QtCore.QString].connect(self.model_slected)
-        layout.addWidget(modelCombo)
+        self.modelCombo = QtGui.QComboBox(self)
+        self.modelCombo.addItems(self.model_dict.keys())
+        self.modelCombo.currentIndexChanged.connect(self.enable_edit)
+
+        newButton = QtGui.QPushButton('&New')
+        newButton.clicked.connect(self.new_model)
+
+        self.editButton = QtGui.QPushButton('&Edit')
+        self.editButton.clicked.connect(self.edit_model)
+        self.editButton.setEnabled(False)
+
+        modelLayout = QtGui.QHBoxLayout()
+        modelLayout.addWidget(self.modelCombo, stretch=1)
+        modelLayout.addWidget(newButton, stretch=0)
+        modelLayout.addWidget(self.editButton)
+
+        layout.addItem(modelLayout)
 
         fitButton = QtGui.QPushButton('&Fit', self)
         fitButton.clicked.connect(self.fit)
@@ -92,46 +111,81 @@ class FitWidget(QtGui.QDialog):
 
         self.print_text = self.textBox.append
 
-    def model_slected(self, model_name):
-        self.print_text('selected model {0}\n'.format(model_name))
-        self.model = MODELS[str(model_name)]
+    def enable_edit(self, idx):
+        self.editButton.setEnabled(True)
+
+    def new_model(self):
+        dlg = ModelWidget()
+        result = dlg.exec_()
+
+        if result == QtGui.QDialog.Accepted:
+            name, model = dlg.get_model()
+            self.model_dict[name] = model
+            self.modelCombo.clear()
+            self.modelCombo.addItems(self.model_dict.keys())
+
+    def edit_model(self):
+        name = str(self.modelCombo.currentText())
+        model = self.model_dict[name]
+
+        dlg = ModelWidget(model=model, name=name)
+        result = dlg.exec_()
+
+        if result == QtGui.QDialog.Accepted:
+            name, model = dlg.get_model()
+            self.model_dict[name] = model
+            self.modelCombo.clear()
+            self.modelCombo.addItems(self.model_dict.keys())
 
     def fit(self):
-        if self.model is None:
+        model_name = str(self.modelCombo.currentText())
+
+        try:
+            model = self.model_dict[model_name]
+            self.print_text('{0} selected'.format(model_name))
+        except KeyError:
             self.print_text('please select a model\n')
-        elif self.artist is None:
+            return
+
+        if self.artist is None:
             self.print_text('no data passed\n')
+            return
+
+        x, y = get_data(self.artist)
+
+        guess = model.make_params()
+
+        if self.range_ is not None:
+            sel = (x > self.range_.xmin) & (x < self.range_.xmax)
+
+            for comp in model.components:
+                guess.update(comp.guess(y[sel], x=x[sel]))
+
+            result = model.fit(y[sel], x=x[sel], params=guess)
         else:
-            x, y = get_data(self.artist)
+            for comp in model.components:
+                guess.update(comp.guess(y, x=x))
 
-            model = self.model()
+            result = model.fit(y, x=x, params=guess)
 
-            if self.range is not None:
-                sel = (x > self.range.xmin) & (x < self.range.xmax)
-                self.res = model.fit(y[sel],
-                                     x=x[sel],
-                                     params=model.guess(y[sel], x=x[sel]))
-            else:
-                self.res = model.fit(y, x=x, params=model.guess(y, x=x))
+        self.print_text(result.fit_report())
 
-            self.print_text(self.res.fit_report())
+        axes = get_axes(self.artist)
 
-            axes = get_axes(self.artist)
+        hold_state = axes._hold
+        axes.hold(True)
+        axes.plot(x, result.eval(x=x), label='fit_result', color='b')
+        axes.hold(hold_state)
 
-            hold_state = axes._hold
-            axes.hold(True)
-            axes.plot(x, self.res.eval(x=x), label='fit_result', color='b')
-            axes.hold(hold_state)
-
-            self.parent().draw()
+        self.parent().draw()
 
     def get_range(self):
         axes = get_axes(self.artist)
 
-        if self.range is not None:
-            del self.range
+        if self.range_ is not None:
+            del self.range_
 
-        self.range = RangeSelector(self, axes)
+        self.range_ = RangeSelector(self, axes)
 
 
 class RangeSelector(object):
