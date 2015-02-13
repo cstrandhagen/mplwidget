@@ -6,10 +6,23 @@ Created on Feb 12, 2015
 
 from PyQt4 import QtGui, QtCore
 
+import inspect
 import lmfit
 
 MODELS = {name: obj for name, obj in lmfit.models.__dict__.items()
           if name.endswith('Model') and name != 'Model'}
+
+
+def get_required_args(func):
+    argspec = inspect.getargspec(func)
+
+    required_args = argspec[0]
+    if argspec[3] is not None:
+        required_args = required_args[:len(argspec[3])]
+
+    required_args.remove('self')
+
+    return required_args
 
 
 def generate_prefix(model, used_prefixes=[]):
@@ -160,9 +173,38 @@ class ModelWidget(QtGui.QDialog):
         if self._currentSelection is None:
             return
 
-        selected_model = MODELS[self._currentSelection]()
-        self.model = add_models(self.model, selected_model)
-        self.update_component_list()
+        selected_model = MODELS[self._currentSelection]
+        required_args = get_required_args(selected_model.__init__)
+
+        args = []
+
+        for argname in required_args:
+            text, ok = QtGui.QInputDialog.getText(self,
+                                                  'Set Required Parameter',
+                                                  argname)
+
+            if ok is False:
+                return
+
+            text = str(text)
+
+            if text.replace('.', '').isdigit():
+                if '.' in text:
+                    args.append(float(text))
+                else:
+                    args.append(int(text))
+            else:
+                args.append(text)
+
+        try:
+            self.model = add_models(self.model, selected_model(*args))
+            self.update_component_list()
+        except Exception as exc:
+            message = '<b>{0}</b><br><br>{1}'.format(type(exc).__name__,
+                                                     exc.message)
+
+            QtGui.QMessageBox.critical(self, 'Ooops...', message)
+            self.add()
 
     def model_selected(self, model_name):
         self._currentSelection = str(model_name)
