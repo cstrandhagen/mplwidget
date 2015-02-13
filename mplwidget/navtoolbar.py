@@ -168,19 +168,13 @@ class NavigationToolbar(QtGui.QToolBar):
             if picked:
                 # check if artist is part of bar graph
                 for container in self.canvas.figure.gca().containers:
-                    if artist in container:
+                    if artist in container.get_children():
                         if container not in add_these:
                             add_these.append(container)
                         break
                 else:
-                    for collection in self.canvas.figure.gca().collections:
-                        if artist in collection:
-                            if collection not in add_these:
-                                add_these.append(collection)
-                            break
-                    else:
-                        if not str(artist).startswith("Rectangle(0,0"):
-                            sub_menus.append(SubMenu(artist, parent=self))
+                    if not str(artist).startswith("Rectangle(0,0"):
+                        sub_menus.append(SubMenu(artist, parent=self))
 
         for artist in [self.canvas.figure.gca().xaxis.label,
                        self.canvas.figure.gca().yaxis.label]:

@@ -17,6 +17,8 @@ def get_axes(artist):
         axes = artist.get_axes()
     elif type(artist) == mpl.container.BarContainer:
         axes = artist.patches[0].axes
+    elif type(artist) == mpl.container.ErrorbarContainer:
+        axes = artist.lines[0].get_axes()
     else:
         msg = 'get_axes is not implemented for {0}'.format(type(artist))
         raise NotImplementedError(msg)
@@ -27,20 +29,35 @@ def get_axes(artist):
 def get_data(artist):
     if type(artist) == mpl.lines.Line2D:
         x, y = artist.get_data()
+        weights = np.ones(len(x))
     elif type(artist) == mpl.container.BarContainer:
         x = np.array([p.get_x() for p in artist.patches])
         w = np.array([p.get_width() for p in artist.patches])
         x += w/2.
         y = np.array([p.get_height() for p in artist.patches])
+        # using sqrt(y) assuming this is a bar histogram
+        weights = 1./np.sqrt(y)
+        weights[np.isinf(weights)] = 0
     elif type(artist) == mpl.patches.Polygon:
         x, y = zip(*artist.get_xy())
         x = np.array(x)
         y = np.array(y)
+        # using sqrt(y) assuming this is a step histogram
+        weights = np.sqrt(y)
+    elif type(artist) == mpl.container.ErrorbarContainer:
+        x, y = artist.lines[0].get_data()
+
+        if artist.has_yerr:
+            # taking only the positive error, assuming it is symmetric
+            weights = 1./(artist.lines[1][-1].get_ydata() - y)
+            weights[np.isinf(weights)] = 0
+        else:
+            weights = np.ones(len(x))
     else:
         msg = 'get_data is not implemented for {0}'.format(type(artist))
         raise NotImplementedError(msg)
 
-    return x, y
+    return x, y, weights
 
 
 class FitWidget(QtGui.QDialog):
@@ -151,7 +168,7 @@ class FitWidget(QtGui.QDialog):
             self.print_text('no data passed\n')
             return
 
-        x, y = get_data(self.artist)
+        x, y, w = get_data(self.artist)
 
         guess = model.make_params()
 
@@ -161,12 +178,12 @@ class FitWidget(QtGui.QDialog):
             for comp in model.components:
                 guess.update(comp.guess(y[sel], x=x[sel]))
 
-            result = model.fit(y[sel], x=x[sel], params=guess)
+            result = model.fit(y[sel], x=x[sel], weights=w[sel], params=guess)
         else:
             for comp in model.components:
                 guess.update(comp.guess(y, x=x))
 
-            result = model.fit(y, x=x, params=guess)
+            result = model.fit(y, x=x, weights=w, params=guess)
 
         self.print_text(result.fit_report())
 
