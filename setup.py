@@ -26,4 +26,5 @@ if __name__ == '__main__':
           author='Christian Strandhagen',
           author_email='strandhagen@pit.physik.uni-tuebingen.de',
           license='no idea',
+          install_requires=['matplotlib','lmfit','PyQt4'],
           **configuration(top_path='').todict())

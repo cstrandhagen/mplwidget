@@ -4,7 +4,7 @@ Created on Feb 12, 2015
 @author: strandha
 '''
 
-from PyQt4 import QtGui, QtCore
+from matplotlib.backends.qt_compat import QtGui, QtCore
 
 import inspect
 import lmfit

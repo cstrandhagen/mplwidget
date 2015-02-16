@@ -6,14 +6,15 @@ Created on Mon Jan 30 15:50:25 2012
 """
 from functools import partial
 import numpy as np
-from PyQt4 import QtCore, QtGui
-from matplotlib.cbook import Stack
 
+from matplotlib.cbook import Stack
 from matplotlib.font_manager import FontProperties
 
-from mplwidget.axis_span import AxisSpan
-from axis_pan import AxisPan
-from icons import get_icon
+from matplotlib.backends.qt_compat import QtCore, QtGui
+
+from .axis_span import AxisSpan
+from .axis_pan import AxisPan
+from .icons import get_icon
 from .fit_widget import FitWidget
 
 

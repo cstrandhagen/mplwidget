@@ -4,12 +4,12 @@ Created on Feb 9, 2015
 @author: strandha
 '''
 
-import matplotlib as mpl
 import numpy as np
 from .axis_span import AxisSpan
 from .model_widget import ModelWidget
 
-from PyQt4 import QtGui
+import matplotlib as mpl
+from matplotlib.backends.qt_compat import QtGui
 
 
 def get_axes(artist):
