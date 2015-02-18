@@ -7,6 +7,8 @@ Created on Feb 9, 2015
 import numpy as np
 from .axis_span import AxisSpan
 from .model_widget import ModelWidget
+from .parameter_widget import ParameterWidget
+from .collabpsible_widget import CollapsibleWidget
 
 import matplotlib as mpl
 from matplotlib.backends.qt_compat import QtGui
@@ -60,19 +62,22 @@ def get_data(artist):
     return x, y, weights
 
 
+def markup(string):
+    return string.replace('[[','<b>').replace(']]','</b>').replace('\n','<br>')
+
+
 class FitWidget(QtGui.QDialog):
     '''
     classdocs
     '''
-    model = None
-    model_dict = {}
-    range_ = None
 
     def __init__(self, parent=None, artist=None):
         '''
         Constructor
         '''
         self.artist = artist
+        self.model_dict = {}
+        self.range_ = None
 
         super(FitWidget, self).__init__(parent=parent)
 
@@ -83,6 +88,7 @@ class FitWidget(QtGui.QDialog):
         self.modelCombo = QtGui.QComboBox(self)
         self.modelCombo.addItems(self.model_dict.keys())
         self.modelCombo.currentIndexChanged.connect(self.enable_edit)
+        self.modelCombo.currentIndexChanged.connect(self.update_parwidget)
 
         newButton = QtGui.QPushButton('&New')
         newButton.clicked.connect(self.new_model)
@@ -97,6 +103,15 @@ class FitWidget(QtGui.QDialog):
         modelLayout.addWidget(self.editButton)
 
         layout.addItem(modelLayout)
+
+        self.parameter_widget = ParameterWidget(parameters={})
+        self.parameter_widget.guessClicked.connect(self.guess)
+        self.parameter_widget.valueChanged.connect(self.update_parameters)
+        cw = CollapsibleWidget()
+        cw.setTitle('Parameters')
+        cw.setWidget(self.parameter_widget)
+
+        layout.addWidget(cw, stretch=0)
 
         fitButton = QtGui.QPushButton('&Fit', self)
         fitButton.clicked.connect(self.fit)
@@ -113,7 +128,7 @@ class FitWidget(QtGui.QDialog):
 
         self.textBox = QtGui.QTextEdit(self)
         self.textBox.setReadOnly(True)
-        layout.addWidget(self.textBox)
+        layout.addWidget(self.textBox, stretch=1)
 
         closeButton = QtGui.QPushButton('&Close')
         closeButton.clicked.connect(self.close)
@@ -128,16 +143,122 @@ class FitWidget(QtGui.QDialog):
 
         self.print_text = self.textBox.append
 
+    def guess(self):
+        try:
+            name = str(self.modelCombo.currentText())
+            model = self.model_dict[name]
+        except KeyError:
+            QtGui.QMessageBox.warning(self, 'Ooops...',
+                                      'Please create a model')
+            return
+
+        label = 'How should the start values be guessed?'
+        choices = ['full range', 'global subrange']
+
+        if len(model.get_components()) > 1:
+            choices.append('component subrange')
+        text, ok = QtGui.QInputDialog.getItem(self,
+                                              'Choose how to guess ...',
+                                              label,
+                                              choices,
+                                              0, False)
+
+        if not ok:
+            return
+
+        text = str(text)
+        x, y, w = get_data(self.artist)
+
+        if text == 'full range':
+            guess = model.parameters
+
+            for comp in model.get_components():
+                guess.update(comp.guess(y, x=x))
+
+            model.parameters = guess
+            self.update_parwidget(0)
+
+        elif text == 'global subrange':
+            dlg = RangeSelector(get_axes(self.artist), parent=self)
+
+            def cb():
+                sel = (x > dlg.xmin) & (x < dlg.xmax)
+                guess = model.get_parameters()
+
+                for comp in model.get_components():
+                    guess.update(comp.guess(y[sel], x=x[sel]))
+
+                model.parameters = guess
+                self.update_parwidget(0)
+
+            dlg.accepted.connect(cb)
+            dlg.show()
+
+        elif text == 'component subrange':
+            guess = model.get_parameters()
+
+            comp_iter = iter(model.get_components())
+
+            def call_next():
+                comp = comp_iter.next()
+                msg = '''Click and drag in plot window to select data range
+                         for guess of component {0}
+                      '''.format(comp.name)
+
+                dlg = RangeSelector(get_axes(self.artist),
+                                    parent=self, msg=msg)
+
+                def cb():
+                    sel = (x > dlg.xmin) & (x < dlg.xmax)
+                    guess.update(comp.guess(y[sel], x=x[sel]))
+
+                    try:
+                        call_next()
+                    except StopIteration:
+                        model.set_parameters(guess)
+                        self.model_dict[model.name] = model
+                        self.update_parwidget(0)
+
+                dlg.accepted.connect(cb)
+                dlg.setModal(True)
+                dlg.show()
+
+            call_next()
+
+        else:
+            print 'this should never happen'
+            return
+
     def enable_edit(self, idx):
         self.editButton.setEnabled(True)
 
+    def update_parameters(self):
+        try:
+            name = str(self.modelCombo.currentText())
+            model = self.model_dict[name]
+        except KeyError:
+            QtGui.QMessageBox.warning(self, 'Ooops...',
+                                      'Please create a model')
+
+        model.update_parameters(self.parameter_widget.getValues())
+
+    def update_parwidget(self, idx):
+        try:
+            name = str(self.modelCombo.currentText())
+            model = self.model_dict[name]
+        except KeyError:
+            return
+
+        pars = model.get_parameters()
+        self.parameter_widget.updateParameters(pars)
+
     def new_model(self):
-        dlg = ModelWidget()
+        dlg = ModelWidget(parent=self)
         result = dlg.exec_()
 
         if result == QtGui.QDialog.Accepted:
-            name, model = dlg.get_model()
-            self.model_dict[name] = model
+            model = dlg.get_model()
+            self.model_dict[model.name] = model
             self.modelCombo.clear()
             self.modelCombo.addItems(self.model_dict.keys())
 
@@ -145,12 +266,12 @@ class FitWidget(QtGui.QDialog):
         name = str(self.modelCombo.currentText())
         model = self.model_dict[name]
 
-        dlg = ModelWidget(model=model, name=name)
+        dlg = ModelWidget(parent=self, model=model, name=model.name)
         result = dlg.exec_()
 
         if result == QtGui.QDialog.Accepted:
-            name, model = dlg.get_model()
-            self.model_dict[name] = model
+            model = dlg.get_model()
+            self.model_dict[model.name] = model
             self.modelCombo.clear()
             self.modelCombo.addItems(self.model_dict.keys())
 
@@ -159,7 +280,7 @@ class FitWidget(QtGui.QDialog):
 
         try:
             model = self.model_dict[model_name]
-            self.print_text('{0} selected'.format(model_name))
+            self.print_text('{0} selected'.format(model.name))
         except KeyError:
             self.print_text('please select a model\n')
             return
@@ -170,59 +291,94 @@ class FitWidget(QtGui.QDialog):
 
         x, y, w = get_data(self.artist)
 
-        guess = model.make_params()
-
         if self.range_ is not None:
             sel = (x > self.range_.xmin) & (x < self.range_.xmax)
-
-            for comp in model.components:
-                guess.update(comp.guess(y[sel], x=x[sel]))
-
-            result = model.fit(y[sel], x=x[sel], weights=w[sel], params=guess)
         else:
-            for comp in model.components:
-                guess.update(comp.guess(y, x=x))
+            sel = None
 
-            result = model.fit(y, x=x, weights=w, params=guess)
+        result = self._perform_fit(model, x, y, w, sel)
+        self._plot_fit_result(result, x)
+
+    def _perform_fit(self, model, x, y, w, sel=None):
+        if sel is None:
+            result = model.fit(y, x=x, weights=w,
+                               params=model.get_parameters())
+        else:
+            result = model.fit(y[sel], x=x[sel], weights=w[sel],
+                               params=model.get_parameters())
 
         self.print_text(result.fit_report())
 
+        return result
+
+    def _plot_fit_result(self, result, x):
         axes = get_axes(self.artist)
 
         hold_state = axes._hold
         axes.hold(True)
-        axes.plot(x, result.eval(x=x), label='fit_result', color='b')
+        axes.plot(x, result.eval(x=x), label='fit_result', color='b', lw=2)
         axes.hold(hold_state)
 
         self.parent().draw()
 
     def get_range(self):
-        axes = get_axes(self.artist)
+        dlg = RangeSelector(get_axes(self.artist), parent=self)
 
-        if self.range_ is not None:
-            del self.range_
+        def cb():
+            self.range_ = Range(dlg.xmin, dlg.xmax)
 
-        self.range_ = RangeSelector(self, axes)
+        dlg.accepted.connect(cb)
+        dlg.setModal(True)
+        dlg.show()
 
 
-class RangeSelector(object):
-    def __init__(self, parent, axes):
-        self.xmin = None
-        self.xmax = None
+class Range(object):
+    def __init__(self, xmin, xmax):
+        self.xmin = xmin
+        self.xmax = xmax
 
+
+class RangeSelector(QtGui.QDialog):
+    def __init__(self, axes, parent=None, msg=None):
         self.ax = axes
-        self.parent = parent
+        self.xmin = -np.inf
+        self.xmax = np.inf
+
+        super(RangeSelector, self).__init__(parent=parent)
+
+        layout = QtGui.QVBoxLayout()
+
+        if msg is None:
+            msg = 'Click and drag in plot window to select data range'
+
+        layout.addWidget(QtGui.QLabel(msg))
+        self.setWindowTitle('Select Data Range...')
+
+        buttonBox = QtGui.QHBoxLayout()
+        buttonBox.addStretch(1)
+
+        okButton = QtGui.QPushButton('&Ok')
+        okButton.clicked.connect(self.accept)
+        buttonBox.addWidget(okButton)
+
+        cancelButton = QtGui.QPushButton('&Cancel')
+        cancelButton.clicked.connect(self.reject)
+        buttonBox.addWidget(cancelButton)
+
+        buttonBox.addStretch(1)
+        layout.addItem(buttonBox)
+        self.setLayout(layout)
 
         self.connect = self.ax.figure.canvas.mpl_connect
         self.disconnect = self.ax.figure.canvas.mpl_disconnect
-
-        self.cid = self.connect('button_press_event', self.on_click)
 
     def on_click(self, event):
         def onselect(xmin, xmax):
             self.disconnect(self.cid)
             self.xmin, self.xmax = xmin, xmax
-            self.parent.print_text('range selected for fit: {0:7.2g} ... {1:7.2g}'.format(xmin, xmax))
+            self.parent().print_text('range selected for fit: {0:7.2g} ... {1:7.2g}'.format(xmin, xmax))
+
+            super(RangeSelector, self).accept()
 
         self.span = AxisSpan(self.ax,
                              event,
@@ -231,3 +387,8 @@ class RangeSelector(object):
                              color='black',
                              alpha=.7,
                              drawmode='inverted')
+
+    def accept(self):
+        self.setModal(False)
+        self.cid = self.connect('button_press_event', self.on_click)
+        self.hide()

@@ -85,7 +85,7 @@ def remove_component(model, component):
         return model
 
     if len(model.components) == 1:
-        return model
+        return None
 
     component_list = model.components[:]
     component_list.remove(component)
@@ -98,15 +98,60 @@ def remove_component(model, component):
     return new_model
 
 
+class ModelContainer(object):
+    def __init__(self, name='', model=None, parameters=None):
+        self.name = name
+        self.model = model
+        self.parameters = parameters
+
+    def add_component(self, component):
+        self.model = add_models(self.model, component)
+
+    def remove_component(self, idx):
+        selected_component = self.model.components[idx]
+        self.model = remove_component(self.model, selected_component)
+
+    def set_name(self, name):
+        self.name = str(name)
+
+    def get_components(self):
+        return self.model.components
+
+    def get_parameters(self):
+        if self.parameters is None:
+            self.parameters = self.model.make_params()
+
+        if set(self.parameters.keys()) != set(self.model.make_params().keys()):
+            self.parameters = self.model.make_params()
+
+        return self.parameters
+
+    def set_parameters(self, parameters):
+        print parameters
+        self.parameters = parameters
+
+    def fit(self, *args, **kwargs):
+        return self.model.fit(*args, **kwargs)
+
+    def update_parameters(self, value_dict):
+        for par in self.parameters.values():
+            v = value_dict[par.name]
+            par.value = v['value']
+            par.min = v['lower']
+            par.max = v['upper']
+            par.vary = not v['fixed']
+
+
 class ModelWidget(QtGui.QDialog):
     '''
     Generate a fit model by adding predefined models from lmfit.
     '''
-
-    _currentSelection = None
-
     def __init__(self, parent=None, model=None, name='MyModel'):
+        if model is None:
+            model = ModelContainer()
+
         self.model = model
+        self._currentSelection = None
 
         super(ModelWidget, self).__init__(parent=parent)
 
@@ -114,12 +159,14 @@ class ModelWidget(QtGui.QDialog):
 
         layout = QtGui.QVBoxLayout()
 
-        self.nameEdit = QtGui.QLineEdit(self)
-        self.nameEdit.setText(name)
-        layout.addWidget(self.nameEdit)
+        nameEdit = QtGui.QLineEdit(self)
+        nameEdit.textChanged.connect(self.model.set_name)
+        nameEdit.setText(name)
+        layout.addWidget(nameEdit)
 
         modelCombo = QtGui.QComboBox(self)
-        modelCombo.addItems(MODELS.keys())
+        modelCombo.setInsertPolicy(QtGui.QComboBox.InsertAlphabetically)
+        modelCombo.addItems(sorted(MODELS.keys()))
         modelCombo.currentIndexChanged[QtCore.QString].connect(self.model_selected)
         modelCombo.currentIndexChanged[QtCore.QString].emit(modelCombo.currentText())
 
@@ -197,7 +244,7 @@ class ModelWidget(QtGui.QDialog):
                 args.append(text)
 
         try:
-            self.model = add_models(self.model, selected_model(*args))
+            self.model.add_component(selected_model(*args))
             self.update_component_list()
         except Exception as exc:
             message = '<b>{0}</b><br><br>{1}'.format(type(exc).__name__,
@@ -210,23 +257,21 @@ class ModelWidget(QtGui.QDialog):
         self._currentSelection = str(model_name)
 
     def get_model(self):
-        return str(self.nameEdit.text()), self.model
+        return self.model
 
     def edit_options(self):
         raise NotImplementedError
 
     def remove_component(self):
-        current_row = self.componentList.currentRow()
-        selected_component = self.model.components[current_row]
-
-        self.model = remove_component(self.model, selected_component)
+        idx = self.componentList.currentRow()
+        self.model.remove_component(idx)
         self.update_component_list()
 
     def update_component_list(self):
         self.componentList.clear()
 
         try:
-            for comp in self.model.components:
+            for comp in self.model.get_components():
                 self.componentList.addItem(comp.name)
         except AttributeError:
             pass
