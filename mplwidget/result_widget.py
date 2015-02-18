@@ -24,6 +24,9 @@ class ResultContainer(object):
     def add_component_plot(self, line):
         self.component_plots.append(line)
 
+    def get_ncomponents(self):
+        return len(self.result.components)
+
     def toggle_plot(self, show=None):
         if self.plot is None:
             return
@@ -111,7 +114,7 @@ class ResultWidget(QtGui.QWidget):
         if not result.has_components():
             self.compCheck.setEnabled(False)
         else:
-            visible = result.components[0].get_visible()
+            visible = result.component_plots[0].get_visible()
             self.compCheck.setChecked(visible)
 
     def update_result_list(self):

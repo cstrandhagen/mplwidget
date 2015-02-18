@@ -362,12 +362,13 @@ class FitWidget(QtGui.QDialog):
         lines = axes.plot(x, result.eval(x=x), label=result.name, lw=2)
         result.set_plot(lines[0])
 
-        for data in result.eval_components(x=x).values():
-            line = axes.plot(x, data, '--', color=result.plot.get_color(),
-                             lw=2, label='_nolegend_')[0]
+        if result.get_ncomponents() > 1:
+            for data in result.eval_components(x=x).values():
+                line = axes.plot(x, data, '--', color=result.plot.get_color(),
+                                 lw=2, label='_nolegend_')[0]
 
-            result.add_component_plot(line)
-            line.set_visible(show_components)
+                result.add_component_plot(line)
+                line.set_visible(show_components)
 
         axes.hold(hold_state)
         self.parent().draw()

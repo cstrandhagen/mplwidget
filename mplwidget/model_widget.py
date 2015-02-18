@@ -8,9 +8,12 @@ from matplotlib.backends.qt_compat import QtGui, QtCore
 
 import inspect
 import lmfit
+from .models import model_dict
 
 MODELS = {name: obj for name, obj in lmfit.models.__dict__.items()
           if name.endswith('Model') and name != 'Model'}
+
+MODELS.update(model_dict)
 
 
 def get_required_args(func):
