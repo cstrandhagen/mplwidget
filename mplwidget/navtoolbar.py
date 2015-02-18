@@ -60,7 +60,7 @@ class NavigationToolbar(QtGui.QToolBar):
                                                  self._on_scroll)
 
         # needed to keep as a reference for things created in a SubMenu
-        self._activeWidget = None
+        self._fitWidget = None
 
         self.set_history_buttons()
 
@@ -278,8 +278,12 @@ class NavigationToolbar(QtGui.QToolBar):
         self.draw()
 
     def fit(self, artist):
-        self._activeWidget = FitWidget(self, artist)
-        self._activeWidget.show()
+        if self._fitWidget is None:
+            self._fitWidget = FitWidget(self, artist)
+        else:
+            self._fitWidget.artist = artist
+
+        self._fitWidget.show()
 
 
 class SubMenu(QtGui.QMenu):

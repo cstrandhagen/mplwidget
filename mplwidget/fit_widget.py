@@ -4,14 +4,30 @@ Created on Feb 9, 2015
 @author: strandha
 '''
 
+import __main__
 import numpy as np
 from .axis_span import AxisSpan
 from .model_widget import ModelWidget
 from .parameter_widget import ParameterWidget
 from .collabpsible_widget import CollapsibleWidget
+from .result_widget import ResultWidget, ResultContainer
 
 import matplotlib as mpl
 from matplotlib.backends.qt_compat import QtGui
+
+
+def store_in_namespace(result):
+    try:
+        fr = __main__.__getattribute__('FITRESULT')
+    except AttributeError:
+        fr = {}
+        __main__.__setattr__('FITRESULT', fr)
+
+    if type(fr) != dict:
+        print 'WARNING: overwriting FITRESULT in local namespace'
+        fr = {}
+
+    fr[result.name] = result.result
 
 
 def get_axes(artist):
@@ -26,6 +42,14 @@ def get_axes(artist):
         raise NotImplementedError(msg)
 
     return axes
+
+
+def get_line(axes, name):
+    for line in axes.get_lines():
+        if line.get_label() == name:
+            return line
+
+    raise AttributeError
 
 
 def get_data(artist):
@@ -89,6 +113,7 @@ class FitWidget(QtGui.QDialog):
         self.modelCombo.addItems(self.model_dict.keys())
         self.modelCombo.currentIndexChanged.connect(self.enable_edit)
         self.modelCombo.currentIndexChanged.connect(self.update_parwidget)
+        self.modelCombo.currentIndexChanged.connect(self.update_resultwidget)
 
         newButton = QtGui.QPushButton('&New')
         newButton.clicked.connect(self.new_model)
@@ -111,6 +136,13 @@ class FitWidget(QtGui.QDialog):
         cw.setTitle('Parameters')
         cw.setWidget(self.parameter_widget)
 
+        layout.addWidget(cw, stretch=0)
+
+        self.result_widget = ResultWidget(parent=self)
+
+        cw = CollapsibleWidget()
+        cw.setTitle('Results')
+        cw.setWidget(self.result_widget)
         layout.addWidget(cw, stretch=0)
 
         fitButton = QtGui.QPushButton('&Fit', self)
@@ -242,7 +274,7 @@ class FitWidget(QtGui.QDialog):
 
         model.update_parameters(self.parameter_widget.getValues())
 
-    def update_parwidget(self, idx):
+    def update_parwidget(self, *args):
         try:
             name = str(self.modelCombo.currentText())
             model = self.model_dict[name]
@@ -251,6 +283,14 @@ class FitWidget(QtGui.QDialog):
 
         pars = model.get_parameters()
         self.parameter_widget.updateParameters(pars)
+
+    def update_resultwidget(self, *args):
+        try:
+            name = str(self.modelCombo.currentText())
+            model = self.model_dict[name]
+            self.result_widget.set_model(model)
+        except KeyError:
+            return
 
     def new_model(self):
         dlg = ModelWidget(parent=self)
@@ -282,11 +322,13 @@ class FitWidget(QtGui.QDialog):
             model = self.model_dict[model_name]
             self.print_text('{0} selected'.format(model.name))
         except KeyError:
-            self.print_text('please select a model\n')
+            QtGui.QMessageBox.warning(self, 'Ooops...',
+                                      'Please create a model')
             return
 
         if self.artist is None:
-            self.print_text('no data passed\n')
+            QtGui.QMessageBox.warning(self, 'Ooops...',
+                                      'No data selected')
             return
 
         x, y, w = get_data(self.artist)
@@ -297,6 +339,7 @@ class FitWidget(QtGui.QDialog):
             sel = None
 
         result = self._perform_fit(model, x, y, w, sel)
+        self._store_fit_result(model, result)
         self._plot_fit_result(result, x)
 
     def _perform_fit(self, model, x, y, w, sel=None):
@@ -309,17 +352,43 @@ class FitWidget(QtGui.QDialog):
 
         self.print_text(result.fit_report())
 
-        return result
+        return ResultContainer(result)
 
-    def _plot_fit_result(self, result, x):
+    def _plot_fit_result(self, result, x, show_components=True):
         axes = get_axes(self.artist)
 
         hold_state = axes._hold
         axes.hold(True)
-        axes.plot(x, result.eval(x=x), label='fit_result', color='b', lw=2)
-        axes.hold(hold_state)
+        lines = axes.plot(x, result.eval(x=x), label=result.name, lw=2)
+        result.set_plot(lines[0])
 
+        for data in result.eval_components(x=x).values():
+            line = axes.plot(x, data, '--', color=result.plot.get_color(),
+                             lw=2, label='_nolegend_')[0]
+
+            result.add_component_plot(line)
+            line.set_visible(show_components)
+
+        axes.hold(hold_state)
         self.parent().draw()
+
+    def _store_fit_result(self, model, result, name=None):
+        if name is None:
+            name = model.name + '_{0}'
+
+        i = 0
+
+        while True:
+            if name.format(i) not in model.results:
+                name = name.format(i)
+                break
+
+            i += 1
+
+        result.name = name
+        model.add_result(name, result)
+        self.update_resultwidget()
+        store_in_namespace(result)
 
     def get_range(self):
         dlg = RangeSelector(get_axes(self.artist), parent=self)

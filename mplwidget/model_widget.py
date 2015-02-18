@@ -99,10 +99,15 @@ def remove_component(model, component):
 
 
 class ModelContainer(object):
-    def __init__(self, name='', model=None, parameters=None):
+    def __init__(self, name='', model=None, parameters=None, results=None):
         self.name = name
         self.model = model
         self.parameters = parameters
+
+        if results is None:
+            results = {}
+
+        self.results = results
 
     def add_component(self, component):
         self.model = add_models(self.model, component)
@@ -127,7 +132,6 @@ class ModelContainer(object):
         return self.parameters
 
     def set_parameters(self, parameters):
-        print parameters
         self.parameters = parameters
 
     def fit(self, *args, **kwargs):
@@ -140,6 +144,16 @@ class ModelContainer(object):
             par.min = v['lower']
             par.max = v['upper']
             par.vary = not v['fixed']
+
+    def add_result(self, name, result):
+        self.results[name] = result
+
+    def remove_result(self, name):
+        try:
+            self.results.pop(name)
+        except KeyError:
+            print 'DEBUG: no such result ', name
+            pass
 
 
 class ModelWidget(QtGui.QDialog):
