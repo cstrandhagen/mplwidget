@@ -17,7 +17,7 @@ Copyright © 2005 Florent Rougon, 2006 Darren Dale
 """
 
 
-from PyQt4 import QtCore, QtGui
+from matplotlib.backends.qt_compat import QtCore, QtGui
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as Canvas
 from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
@@ -95,7 +95,7 @@ class MatplotlibWidget(Canvas):
     self.widget.axes.plot(x, x**2)
     self.wdiget.axes.plot(x, x**3)
     """
-    canvasUpdated = QtCore.pyqtSignal()
+    canvasUpdated = QtCore.Signal()
 
     def __init__(self, parent=None, title='', xlabel='', ylabel='',
                  xlim=None, ylim=None, xscale='linear', yscale='linear',
@@ -131,7 +131,7 @@ class MatplotlibWidget(Canvas):
     def minimumSizeHint(self):
         return QtCore.QSize(10, 10)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def draw(self):
         super(MatplotlibWidget, self).draw()
         # adjust_axis_labels(self.axes)

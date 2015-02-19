@@ -1,4 +1,4 @@
-from PyQt4 import QtGui
+from matplotlib.backends.qt_compat import QtGui
 import os
 
 
