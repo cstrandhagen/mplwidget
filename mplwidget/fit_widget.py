@@ -69,7 +69,7 @@ def get_data(artist):
         x = np.array(x)
         y = np.array(y)
         # using sqrt(y) assuming this is a step histogram
-        weights = np.sqrt(y)
+        weights = 1./np.sqrt(y)
     elif type(artist) == mpl.container.ErrorbarContainer:
         x, y = artist.lines[0].get_data()
 
