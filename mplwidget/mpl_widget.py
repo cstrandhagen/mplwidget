@@ -21,14 +21,14 @@ from matplotlib.backends.qt_compat import QtCore, QtGui
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as Canvas
 from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
-from navtoolbar import NavigationToolbar
+
+from .navtoolbar import NavigationToolbar
 
 __version__ = "1.0.0"
 
 
 def axis_labels_overlap(axis):
     bb = [t.label.get_window_extent() for t in axis.get_major_ticks()]
-    print 'overlap', len(bb), bb[0].count_overlaps(bb[1:])
     return bool(bb[0].count_overlaps(bb[1:]))
 
 
@@ -36,7 +36,6 @@ def reduce_number_of_axis_labels(axis):
     n = len(axis.get_major_ticks())
 
     while axis_labels_overlap(axis) and n > 3:
-        print n
         n -= 1
         axis.set_major_locator(MaxNLocator(n))
 
@@ -45,7 +44,6 @@ def increase_number_of_axis_labels(axis):
     n = len(axis.get_major_ticks())
 
     while not axis_labels_overlap(axis):
-        print n
         n *= 2
         axis.set_major_locator(MaxNLocator(n))
 
@@ -54,13 +52,12 @@ def increase_number_of_axis_labels(axis):
 
 def adjust_axis_labels(axes):
     for axis in [axes.yaxis, axes.xaxis]:
-        print axis
         if axis_labels_overlap(axis):
-            print 'reducing'
             reduce_number_of_axis_labels(axis)
         # else:
         #    print 'increasing'
         #    increase_number_of_axis_labels(axis)
+
 
 class MatplotlibWidget(Canvas):
     """

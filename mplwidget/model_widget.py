@@ -155,7 +155,7 @@ class ModelContainer(object):
         try:
             self.results.pop(name)
         except KeyError:
-            print 'DEBUG: no such result ', name
+            print('DEBUG: no such result {0}'.format(name))
             pass
 
 

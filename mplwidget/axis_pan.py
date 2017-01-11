@@ -31,9 +31,9 @@ class AxisPan(object):
             elif key == 'y':
                 dx = 0
             elif key == 'shift':
-                if 2*abs(dx) < abs(dy):
+                if 2 * abs(dx) < abs(dy):
                     dx = 0
-                elif 2*abs(dy) < abs(dx):
+                elif 2 * abs(dy) < abs(dx):
                     dy = 0
                 elif(abs(dx) > abs(dy)):
                     dy = dy / abs(dy) * abs(dx)

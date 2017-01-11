@@ -19,7 +19,7 @@ from .fit_widget import FitWidget
 
 
 def gauss_function(x, a, x0, sigma):
-    return a/(sigma*np.sqrt(2*np.pi))*np.exp(-((x - x0))**2 / (2 * sigma**2))
+    return a / (sigma * np.sqrt(2 * np.pi)) * np.exp(-((x - x0))**2 / (2 * sigma**2))
 
 
 class NavigationToolbar(QtGui.QToolBar):
@@ -77,8 +77,12 @@ class NavigationToolbar(QtGui.QToolBar):
         self.dynamic_update()
 
     def _on_scroll(self, event):
-        if event.inaxes is None: return
-        if self._views.empty(): self.push_current()
+        if event.inaxes is None:
+            return
+
+        if self._views.empty():
+            self.push_current()
+
         self.scroll_zoom(event.inaxes, event.step,
                          location=(event.xdata, event.ydata))
 
@@ -102,7 +106,8 @@ class NavigationToolbar(QtGui.QToolBar):
             x, y = event.x, event.y
 
             # push the current view to define home if stack is empty
-            if self._views.empty(): self.push_current()
+            if self._views.empty():
+                self.push_current()
 
             self._xypress = []
 
@@ -113,7 +118,7 @@ class NavigationToolbar(QtGui.QToolBar):
                     self._xypress.append((pan, i))
                     self.canvas.mpl_disconnect(self._idDrag)
                     self._idDrag = self.canvas.mpl_connect('motion_notify_event',
-                                                            self.drag_pan)
+                                                           self.drag_pan)
 
     def drag_pan(self, event):
         """drag callback in pan mode"""
@@ -130,7 +135,8 @@ class NavigationToolbar(QtGui.QToolBar):
         for a, ind in self._xypress:
             del a
 
-        if not self._xypress: return
+        if not self._xypress:
+            return
 
         self._xypress = []
         self.push_current()
@@ -141,7 +147,9 @@ class NavigationToolbar(QtGui.QToolBar):
         ax = self.canvas.figure.gca()
         if ax.get_xaxis().contains(event)[0]:
             def zoom(xmin, xmax):
-                if self._views.empty(): self.push_current()
+                if self._views.empty():
+                    self.push_current()
+
                 ax.set_xlim(xmin, xmax)
                 self.push_current()
                 self.dynamic_update()
@@ -150,7 +158,9 @@ class NavigationToolbar(QtGui.QToolBar):
                                    minspan=0.001, color='w')
         if ax.get_yaxis().contains(event)[0]:
             def zoom(ymin, ymax):
-                if self._views.empty(): self.push_current()
+                if self._views.empty():
+                    self.push_current()
+
                 ax.set_ylim(ymin, ymax)
                 self.push_current()
                 self.dynamic_update()
@@ -231,7 +241,7 @@ class NavigationToolbar(QtGui.QToolBar):
 
             if p == 0:
                 self.backAction.setEnabled(False)
-            if p == n-1:
+            if p == n - 1:
                 self.forwardAction.setEnabled(False)
 
     def push_current(self):
@@ -268,7 +278,8 @@ class NavigationToolbar(QtGui.QToolBar):
         """
 
         lims = self._views()
-        if lims is None: return
+        if lims is None:
+            return
 
         for i, a in enumerate(self.canvas.figure.get_axes()):
             xmin, xmax, ymin, ymax = lims[i]
@@ -343,7 +354,7 @@ class SubMenu(QtGui.QMenu):
                 for child in self.artist.get_children():
                     child.set_visible(False)
             except:
-                print 'unexpected error'
+                print('unexpected error')
 
         self.parent.canvas.draw()
 
@@ -367,7 +378,7 @@ class SubMenu(QtGui.QMenu):
         self.parent.canvas.draw()
 
     def font(self):
-        font, ok = QtGui.QFontDialog.getFont(_convert_font_toQT(self.artist.get_fontproperties()),self)
+        font, ok = QtGui.QFontDialog.getFont(_convert_font_toQT(self.artist.get_fontproperties()), self)
 
         if ok:
             self.artist.set_fontproperties(_convert_font_fromQT(font))

@@ -1,1 +1,1 @@
-from mpl_widget import MatplotlibWidget
+from .mpl_widget import MatplotlibWidget

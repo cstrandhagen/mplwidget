@@ -24,7 +24,7 @@ def store_in_namespace(result):
         __main__.__setattr__('FITRESULT', fr)
 
     if type(fr) != dict:
-        print 'WARNING: overwriting FITRESULT in local namespace'
+        print('WARNING: overwriting FITRESULT in local namespace')
         fr = {}
 
     fr[result.name] = result.result
@@ -260,7 +260,7 @@ class FitWidget(QtGui.QDialog):
             call_next()
 
         else:
-            print 'this should never happen'
+            print('this should never happen')
             return
 
     def enable_edit(self, idx):

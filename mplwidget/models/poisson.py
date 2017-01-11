@@ -9,15 +9,19 @@ __author__ = 'uffinger'
 
 def guess_from_peak(model, y, x):
     "estimate amp, cen, sigma for a peak, create params"
+
     if x is None:
         return 1.0, 0.0, 1.0
+
     maxy, miny = max(y), min(y)
     imaxy = index_of(y, maxy)
     mu = x[imaxy]
-    amp = (maxy - miny)*2.0
+    amp = (maxy - miny) * 2.0
 
     pars = model.make_params(mu=mu, amp=amp)
+
     return pars
+
 
 COMMON_DOC = """
 
@@ -42,6 +46,7 @@ class PoissonModel(Model):
     def __init__(self, *args, **kwargs):
         def poisson(x, amp, mu):
             return amp * np.exp(-mu) * mu ** x / scipy.misc.factorial(x)
+
         super(PoissonModel, self).__init__(poisson, *args, **kwargs)
 
     def guess(self, data, x=None, **kwargs):
