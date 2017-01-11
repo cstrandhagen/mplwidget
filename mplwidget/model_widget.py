@@ -49,7 +49,7 @@ def update_prefix(model, prefix):
 
             for name in model.param_names:
                 if name in expr:
-                    expr = expr.replace(name, prefix+name.lstrip(old_prefix))
+                    expr = expr.replace(name, prefix + name.lstrip(old_prefix))
 
             hint['expr'] = expr
         except KeyError:

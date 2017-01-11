@@ -98,9 +98,11 @@ class AxisSpan(object):
                                    visible=self.visible,
                                    **self.rectprops
                                    )
-            if not self.useblit: self.ax.add_patch(self.rect2)
+            if not self.useblit:
+                self.ax.add_patch(self.rect2)
 
-        if not self.useblit: self.ax.add_patch(self.rect)
+        if not self.useblit:
+            self.ax.add_patch(self.rect)
 
         # Needed when dragging out of axes
         self.buttonDown = True
@@ -133,11 +135,15 @@ class AxisSpan(object):
         vmin = self.pressv
         if self.direction == 'horizontal':
             vmax = event.x or self.prev[0]
-            vmin, vmax = [self.ax.transData.inverted().transform((v,0))[0] for v in [vmin, vmax]]
+            vmin, vmax = [self.ax.transData.inverted().transform((v, 0))[0]
+                          for v in [vmin, vmax]]
+
             mn, mx = self.ax.get_xlim()
         else:
             vmax = event.y or self.prev[1]
-            vmin, vmax = [self.ax.transData.inverted().transform((0,v))[1] for v in [vmin, vmax]]
+            vmin, vmax = [self.ax.transData.inverted().transform((0, v))[1]
+                          for v in [vmin, vmax]]
+
             mn, mx = self.ax.get_ylim()
 
         if vmin > vmax:
@@ -145,7 +151,8 @@ class AxisSpan(object):
 
         span = (vmax - vmin) / (mx - mn)
 
-        if self.minspan is not None and span < self.minspan: return
+        if self.minspan is not None and span < self.minspan:
+            return
 
         self.onselect(vmin, vmax)
         self.pressv = None
@@ -174,7 +181,8 @@ class AxisSpan(object):
 
     def onmove(self, event):
         'on motion notify event'
-        if self.pressv is None or self.ignore(event): return
+        if self.pressv is None or self.ignore(event):
+            return
 
         x, y = event.x, event.y
         self.prev = x, y
@@ -185,7 +193,8 @@ class AxisSpan(object):
 
         minv, maxv = v, self.pressv
 
-        if minv > maxv: minv, maxv = maxv, minv
+        if minv > maxv:
+            minv, maxv = maxv, minv
 
         if self.drawmode == 'inverted':
             if self.direction == 'horizontal':
@@ -193,20 +202,20 @@ class AxisSpan(object):
                 self.rect.set_width(minv)
                 mx = self.ax.transData.transform((self.ax.get_xlim()[1], 0))[0]
                 self.rect2.set_x(maxv)
-                self.rect2.set_width(mx-maxv)
+                self.rect2.set_width(mx - maxv)
             else:
                 mx = self.ax.transData.transform((0, self.ax.get_ylim()[1]))[1]
                 self.rect.set_y(0)
                 self.rect.set_height(minv)
                 self.rect2.set_y(maxv)
-                self.rect2.set_height(mx-maxv)
+                self.rect2.set_height(mx - maxv)
         else:
             if self.direction == 'horizontal':
                 self.rect.set_x(minv)
-                self.rect.set_width(maxv-minv)
+                self.rect.set_width(maxv - minv)
             else:
                 self.rect.set_y(minv)
-                self.rect.set_height(maxv-minv)
+                self.rect.set_height(maxv - minv)
 
         if self.onmove_callback is not None:
             vmin = self.pressv
@@ -215,7 +224,9 @@ class AxisSpan(object):
             else:
                 vmax = event.y or self.prev[1]
 
-            if vmin > vmax: vmin, vmax = vmax, vmin
+            if vmin > vmax:
+                vmin, vmax = vmax, vmin
+
             self.onmove_callback(vmin, vmax)
 
         self.update()

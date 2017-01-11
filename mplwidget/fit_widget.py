@@ -59,23 +59,25 @@ def get_data(artist):
     elif type(artist) == mpl.container.BarContainer:
         x = np.array([p.get_x() for p in artist.patches])
         w = np.array([p.get_width() for p in artist.patches])
-        x += w/2.
+        x += w / 2.
         y = np.array([p.get_height() for p in artist.patches])
+
         # using sqrt(y) assuming this is a bar histogram
-        weights = 1./np.sqrt(y)
+        weights = 1. / np.sqrt(y)
         weights[np.isinf(weights)] = 0
     elif type(artist) == mpl.patches.Polygon:
         x, y = zip(*artist.get_xy())
         x = np.array(x)
         y = np.array(y)
+
         # using sqrt(y) assuming this is a step histogram
-        weights = 1./np.sqrt(y)
+        weights = 1. / np.sqrt(y)
     elif type(artist) == mpl.container.ErrorbarContainer:
         x, y = artist.lines[0].get_data()
 
         if artist.has_yerr:
             # taking only the positive error, assuming it is symmetric
-            weights = 1./(artist.lines[1][-1].get_ydata() - y)
+            weights = 1. / (artist.lines[1][-1].get_ydata() - y)
             weights[np.isinf(weights)] = 0
         else:
             weights = np.ones(len(x))
@@ -87,7 +89,7 @@ def get_data(artist):
 
 
 def markup(string):
-    return string.replace('[[','<b>').replace(']]','</b>').replace('\n','<br>')
+    return string.replace('[[', '<b>').replace(']]', '</b>').replace('\n', '<br>')
 
 
 class FitWidget(QtGui.QDialog):
