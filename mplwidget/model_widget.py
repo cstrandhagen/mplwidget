@@ -10,6 +10,7 @@ import inspect
 import lmfit
 from .models import model_dict
 
+
 MODELS = {name: obj for name, obj in lmfit.models.__dict__.items()
           if name.endswith('Model') and name != 'Model'}
 
@@ -184,8 +185,8 @@ class ModelWidget(QtGui.QDialog):
         modelCombo = QtGui.QComboBox(self)
         modelCombo.setInsertPolicy(QtGui.QComboBox.InsertAlphabetically)
         modelCombo.addItems(sorted(MODELS.keys()))
-        modelCombo.currentIndexChanged[QtCore.QString].connect(self.model_selected)
-        modelCombo.currentIndexChanged[QtCore.QString].emit(modelCombo.currentText())
+        modelCombo.currentIndexChanged[str].connect(self.model_selected)
+        modelCombo.currentIndexChanged[str].emit(modelCombo.currentText())
 
         addButton = QtGui.QPushButton('&Add')
         addButton.clicked.connect(self.add)

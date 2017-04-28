@@ -112,7 +112,7 @@ class FitWidget(QtGui.QDialog):
         layout = QtGui.QVBoxLayout()
 
         self.modelCombo = QtGui.QComboBox(self)
-        self.modelCombo.addItems(self.model_dict.keys())
+        self.modelCombo.addItems(list(self.model_dict.keys()))
         self.modelCombo.currentIndexChanged.connect(self.enable_edit)
         self.modelCombo.currentIndexChanged.connect(self.update_parwidget)
         self.modelCombo.currentIndexChanged.connect(self.update_resultwidget)
@@ -302,7 +302,7 @@ class FitWidget(QtGui.QDialog):
             model = dlg.get_model()
             self.model_dict[model.name] = model
             self.modelCombo.clear()
-            self.modelCombo.addItems(self.model_dict.keys())
+            self.modelCombo.addItems(list(self.model_dict.keys()))
 
     def edit_model(self):
         name = str(self.modelCombo.currentText())
@@ -315,7 +315,7 @@ class FitWidget(QtGui.QDialog):
             model = dlg.get_model()
             self.model_dict[model.name] = model
             self.modelCombo.clear()
-            self.modelCombo.addItems(self.model_dict.keys())
+            self.modelCombo.addItems(list(self.model_dict.keys()))
 
     def fit(self):
         model_name = str(self.modelCombo.currentText())
