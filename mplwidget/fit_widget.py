@@ -15,6 +15,12 @@ from .result_widget import ResultWidget, ResultContainer
 import matplotlib as mpl
 from matplotlib.backends.qt_compat import QtGui
 
+# needed for compatibility with PyQt5
+try:
+    from matplotlib.backends.qt_compat import QtWidgets
+except ImportError:
+    QtWidgets = QtGui
+
 
 def store_in_namespace(result):
     try:
@@ -88,11 +94,11 @@ def get_data(artist):
     return x, y, weights
 
 
-def markup(string):
-    return string.replace('[[', '<b>').replace(']]', '</b>').replace('\n', '<br>')
+def markup(txt):
+    return txt.replace('[[', '<b>').replace(']]', '</b>').replace('\n', '<br>')
 
 
-class FitWidget(QtGui.QDialog):
+class FitWidget(QtWidgets.QDialog):
     '''
     classdocs
     '''
@@ -109,22 +115,22 @@ class FitWidget(QtGui.QDialog):
 
         self.setWindowTitle('Fit Tool')
 
-        layout = QtGui.QVBoxLayout()
+        layout = QtWidgets.QVBoxLayout()
 
-        self.modelCombo = QtGui.QComboBox(self)
+        self.modelCombo = QtWidgets.QComboBox(self)
         self.modelCombo.addItems(list(self.model_dict.keys()))
         self.modelCombo.currentIndexChanged.connect(self.enable_edit)
         self.modelCombo.currentIndexChanged.connect(self.update_parwidget)
         self.modelCombo.currentIndexChanged.connect(self.update_resultwidget)
 
-        newButton = QtGui.QPushButton('&New')
+        newButton = QtWidgets.QPushButton('&New')
         newButton.clicked.connect(self.new_model)
 
-        self.editButton = QtGui.QPushButton('&Edit')
+        self.editButton = QtWidgets.QPushButton('&Edit')
         self.editButton.clicked.connect(self.edit_model)
         self.editButton.setEnabled(False)
 
-        modelLayout = QtGui.QHBoxLayout()
+        modelLayout = QtWidgets.QHBoxLayout()
         modelLayout.addWidget(self.modelCombo, stretch=1)
         modelLayout.addWidget(newButton, stretch=0)
         modelLayout.addWidget(self.editButton)
@@ -147,27 +153,27 @@ class FitWidget(QtGui.QDialog):
         cw.setWidget(self.result_widget)
         layout.addWidget(cw, stretch=0)
 
-        fitButton = QtGui.QPushButton('&Fit', self)
+        fitButton = QtWidgets.QPushButton('&Fit', self)
         fitButton.clicked.connect(self.fit)
 
-        rngButton = QtGui.QPushButton('Select &Range')
+        rngButton = QtWidgets.QPushButton('Select &Range')
         rngButton.clicked.connect(self.get_range)
 
-        fbLayout = QtGui.QHBoxLayout()
+        fbLayout = QtWidgets.QHBoxLayout()
         fbLayout.addStretch()
         fbLayout.addWidget(rngButton)
         fbLayout.addWidget(fitButton)
 
         layout.addItem(fbLayout)
 
-        self.textBox = QtGui.QTextEdit(self)
+        self.textBox = QtWidgets.QTextEdit(self)
         self.textBox.setReadOnly(True)
         layout.addWidget(self.textBox, stretch=1)
 
-        closeButton = QtGui.QPushButton('&Close')
+        closeButton = QtWidgets.QPushButton('&Close')
         closeButton.clicked.connect(self.close)
 
-        cbLayout = QtGui.QHBoxLayout()
+        cbLayout = QtWidgets.QHBoxLayout()
         cbLayout.addStretch()
         cbLayout.addWidget(closeButton)
 
@@ -182,8 +188,8 @@ class FitWidget(QtGui.QDialog):
             name = str(self.modelCombo.currentText())
             model = self.model_dict[name]
         except KeyError:
-            QtGui.QMessageBox.warning(self, 'Ooops...',
-                                      'Please create a model')
+            QtWidgets.QMessageBox.warning(self, 'Ooops...',
+                                          'Please create a model')
             return
 
         label = 'How should the start values be guessed?'
@@ -191,11 +197,11 @@ class FitWidget(QtGui.QDialog):
 
         if len(model.get_components()) > 1:
             choices.append('component subrange')
-        text, ok = QtGui.QInputDialog.getItem(self,
-                                              'Choose how to guess ...',
-                                              label,
-                                              choices,
-                                              0, False)
+        text, ok = QtWidgets.QInputDialog.getItem(self,
+                                                  'Choose how to guess ...',
+                                                  label,
+                                                  choices,
+                                                  0, False)
 
         if not ok:
             return
@@ -271,8 +277,8 @@ class FitWidget(QtGui.QDialog):
             name = str(self.modelCombo.currentText())
             model = self.model_dict[name]
         except KeyError:
-            QtGui.QMessageBox.warning(self, 'Ooops...',
-                                      'Please create a model')
+            QtWidgets.QMessageBox.warning(self, 'Ooops...',
+                                          'Please create a model')
 
         model.update_parameters(self.parameter_widget.getValues())
 
@@ -298,7 +304,7 @@ class FitWidget(QtGui.QDialog):
         dlg = ModelWidget(parent=self)
         result = dlg.exec_()
 
-        if result == QtGui.QDialog.Accepted:
+        if result == QtWidgets.QDialog.Accepted:
             model = dlg.get_model()
             self.model_dict[model.name] = model
             self.modelCombo.clear()
@@ -311,7 +317,7 @@ class FitWidget(QtGui.QDialog):
         dlg = ModelWidget(parent=self, model=model, name=model.name)
         result = dlg.exec_()
 
-        if result == QtGui.QDialog.Accepted:
+        if result == QtWidgets.QDialog.Accepted:
             model = dlg.get_model()
             self.model_dict[model.name] = model
             self.modelCombo.clear()
@@ -324,13 +330,13 @@ class FitWidget(QtGui.QDialog):
             model = self.model_dict[model_name]
             self.print_text('{0} selected'.format(model.name))
         except KeyError:
-            QtGui.QMessageBox.warning(self, 'Ooops...',
-                                      'Please create a model')
+            QtWidgets.QMessageBox.warning(self, 'Ooops...',
+                                          'Please create a model')
             return
 
         if self.artist is None:
-            QtGui.QMessageBox.warning(self, 'Ooops...',
-                                      'No data selected')
+            QtWidgets.QMessageBox.warning(self, 'Ooops...',
+                                          'No data selected')
             return
 
         x, y, w = get_data(self.artist)
@@ -410,7 +416,7 @@ class Range(object):
         self.xmax = xmax
 
 
-class RangeSelector(QtGui.QDialog):
+class RangeSelector(QtWidgets.QDialog):
     def __init__(self, axes, parent=None, msg=None):
         self.ax = axes
         self.xmin = -np.inf
@@ -418,22 +424,22 @@ class RangeSelector(QtGui.QDialog):
 
         super(RangeSelector, self).__init__(parent=parent)
 
-        layout = QtGui.QVBoxLayout()
+        layout = QtWidgets.QVBoxLayout()
 
         if msg is None:
             msg = 'Click and drag in plot window to select data range'
 
-        layout.addWidget(QtGui.QLabel(msg))
+        layout.addWidget(QtWidgets.QLabel(msg))
         self.setWindowTitle('Select Data Range...')
 
-        buttonBox = QtGui.QHBoxLayout()
+        buttonBox = QtWidgets.QHBoxLayout()
         buttonBox.addStretch(1)
 
-        okButton = QtGui.QPushButton('&Ok')
+        okButton = QtWidgets.QPushButton('&Ok')
         okButton.clicked.connect(self.accept)
         buttonBox.addWidget(okButton)
 
-        cancelButton = QtGui.QPushButton('&Cancel')
+        cancelButton = QtWidgets.QPushButton('&Cancel')
         cancelButton.clicked.connect(self.reject)
         buttonBox.addWidget(cancelButton)
 
@@ -448,7 +454,8 @@ class RangeSelector(QtGui.QDialog):
         def onselect(xmin, xmax):
             self.disconnect(self.cid)
             self.xmin, self.xmax = xmin, xmax
-            self.parent().print_text('range selected for fit: {0:7.2g} ... {1:7.2g}'.format(xmin, xmax))
+            txt = 'range selected for fit: {0:7.2g} ... {1:7.2g}'
+            self.parent().print_text(txt.format(xmin, xmax))
 
             super(RangeSelector, self).accept()
 

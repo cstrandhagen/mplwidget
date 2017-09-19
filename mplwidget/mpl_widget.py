@@ -22,6 +22,12 @@ from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as Canvas
 from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
 
+# needed for compatibility with PyQt5
+try:
+    from matplotlib.backends.qt_compat import QtWidgets
+except ImportError:
+    QtWidgets = QtGui
+
 from .navtoolbar import NavigationToolbar
 
 __version__ = "1.0.0"
@@ -115,8 +121,8 @@ class MatplotlibWidget(Canvas):
         Canvas.__init__(self, self.figure)
         self.setParent(parent)
 
-        Canvas.setSizePolicy(self, QtGui.QSizePolicy.Expanding,
-                             QtGui.QSizePolicy.Expanding)
+        Canvas.setSizePolicy(self, QtWidgets.QSizePolicy.Expanding,
+                             QtWidgets.QSizePolicy.Expanding)
         Canvas.updateGeometry(self)
 
         self.toolbar = NavigationToolbar(self, self)

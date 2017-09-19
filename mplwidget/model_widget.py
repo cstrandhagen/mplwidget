@@ -6,6 +6,12 @@ Created on Feb 12, 2015
 
 from matplotlib.backends.qt_compat import QtGui, QtCore
 
+# needed for compatibility with PyQt5
+try:
+    from matplotlib.backends.qt_compat import QtWidgets
+except ImportError:
+    QtWidgets = QtGui
+
 import inspect
 import lmfit
 from .models import model_dict
@@ -22,7 +28,7 @@ def get_required_args(func):
 
     required_args = argspec[0]
     if argspec[3] is not None:
-        required_args = required_args[:len(argspec[3])]
+        required_args = required_args[:-len(argspec[3])]
 
     required_args.remove('self')
 
@@ -160,7 +166,7 @@ class ModelContainer(object):
             pass
 
 
-class ModelWidget(QtGui.QDialog):
+class ModelWidget(QtWidgets.QDialog):
     '''
     Generate a fit model by adding predefined models from lmfit.
     '''
@@ -175,55 +181,55 @@ class ModelWidget(QtGui.QDialog):
 
         self.setWindowTitle('Create Fit Model ...')
 
-        layout = QtGui.QVBoxLayout()
+        layout = QtWidgets.QVBoxLayout()
 
-        nameEdit = QtGui.QLineEdit(self)
+        nameEdit = QtWidgets.QLineEdit(self)
         nameEdit.textChanged.connect(self.model.set_name)
         nameEdit.setText(name)
         layout.addWidget(nameEdit)
 
-        modelCombo = QtGui.QComboBox(self)
-        modelCombo.setInsertPolicy(QtGui.QComboBox.InsertAlphabetically)
+        modelCombo = QtWidgets.QComboBox(self)
+        modelCombo.setInsertPolicy(QtWidgets.QComboBox.InsertAlphabetically)
         modelCombo.addItems(sorted(MODELS.keys()))
         modelCombo.currentIndexChanged[str].connect(self.model_selected)
         modelCombo.currentIndexChanged[str].emit(modelCombo.currentText())
 
-        addButton = QtGui.QPushButton('&Add')
+        addButton = QtWidgets.QPushButton('&Add')
         addButton.clicked.connect(self.add)
 
-        modelLayout = QtGui.QHBoxLayout()
+        modelLayout = QtWidgets.QHBoxLayout()
         modelLayout.addWidget(modelCombo, stretch=1)
         modelLayout.addWidget(addButton)
         layout.addItem(modelLayout)
 
-        componentBox = QtGui.QGroupBox('Components')
+        componentBox = QtWidgets.QGroupBox('Components')
 
-        self.componentList = QtGui.QListWidget()
+        self.componentList = QtWidgets.QListWidget()
 
-        self.removeButton = QtGui.QPushButton('&Remove')
+        self.removeButton = QtWidgets.QPushButton('&Remove')
         self.removeButton.clicked.connect(self.remove_component)
         self.removeButton.setEnabled(False)
 
-        self.optButton = QtGui.QPushButton('&Options ...')
+        self.optButton = QtWidgets.QPushButton('&Options ...')
         self.optButton.clicked.connect(self.edit_options)
         self.optButton.setEnabled(False)
 
         self.componentList.itemClicked.connect(self.update_buttons)
 
-        compButtonLayout = QtGui.QVBoxLayout()
+        compButtonLayout = QtWidgets.QVBoxLayout()
         compButtonLayout.addStretch(1)
         compButtonLayout.addWidget(self.removeButton)
         compButtonLayout.addWidget(self.optButton)
 
-        componentLayout = QtGui.QHBoxLayout()
+        componentLayout = QtWidgets.QHBoxLayout()
         componentLayout.addWidget(self.componentList, stretch=1)
         componentLayout.addItem(compButtonLayout)
 
         componentBox.setLayout(componentLayout)
         layout.addWidget(componentBox)
 
-        buttons = QtGui.QDialogButtonBox(
-            QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel,
+        buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
             QtCore.Qt.Horizontal, self)
 
         buttons.accepted.connect(self.accept)
@@ -244,9 +250,9 @@ class ModelWidget(QtGui.QDialog):
         args = []
 
         for argname in required_args:
-            text, ok = QtGui.QInputDialog.getText(self,
-                                                  'Set Required Parameter',
-                                                  argname)
+            text, ok = QtWidgets.QInputDialog.getText(self,
+                                                      'Set Required Parameter',
+                                                      argname)
 
             if ok is False:
                 return
@@ -268,7 +274,7 @@ class ModelWidget(QtGui.QDialog):
             message = '<b>{0}</b><br><br>{1}'.format(type(exc).__name__,
                                                      exc.message)
 
-            QtGui.QMessageBox.critical(self, 'Ooops...', message)
+            QtWidgets.QMessageBox.critical(self, 'Ooops...', message)
             self.add()
 
     def model_selected(self, model_name):

@@ -7,8 +7,14 @@ Created on Feb 16, 2015
 from matplotlib.backends.qt_compat import QtCore, QtGui
 import numpy as np
 
+# needed for compatibility with PyQt5
+try:
+    from matplotlib.backends.qt_compat import QtWidgets
+except ImportError:
+    QtWidgets = QtGui
 
-class ParameterGrid(QtGui.QWidget):
+
+class ParameterGrid(QtWidgets.QWidget):
     updatedPars = QtCore.Signal()
 
     def __init__(self, parameters, parent=None):
@@ -21,16 +27,16 @@ class ParameterGrid(QtGui.QWidget):
         self.setLayout(layout)
 
     def createLayout(self):
-        layout = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout()
 
         # header row
-        layout.addWidget(QtGui.QLabel('<b>Parameter Name</b>'), 0, 0)
-        layout.addWidget(QtGui.QLabel('<b>Value</b>'), 0, 1)
-        layout.addWidget(QtGui.QLabel('<b>Lower</b>'), 0, 2)
-        layout.addWidget(QtGui.QLabel('<b>Upper</b>'), 0, 3)
-        layout.addWidget(QtGui.QLabel('<b>Fixed</b>'), 0, 4)
-        layout.itemAt(0).widget().setSizePolicy(QtGui.QSizePolicy.Fixed,
-                                                QtGui.QSizePolicy.Fixed)
+        layout.addWidget(QtWidgets.QLabel('<b>Parameter Name</b>'), 0, 0)
+        layout.addWidget(QtWidgets.QLabel('<b>Value</b>'), 0, 1)
+        layout.addWidget(QtWidgets.QLabel('<b>Lower</b>'), 0, 2)
+        layout.addWidget(QtWidgets.QLabel('<b>Upper</b>'), 0, 3)
+        layout.addWidget(QtWidgets.QLabel('<b>Fixed</b>'), 0, 4)
+        layout.itemAt(0).widget().setSizePolicy(QtWidgets.QSizePolicy.Fixed,
+                                                QtWidgets.QSizePolicy.Fixed)
 
         for name, par in sorted(self.parameters.items()):
             self._addRow(layout, par)
@@ -40,10 +46,10 @@ class ParameterGrid(QtGui.QWidget):
     def _addRow(self, layout, parameter):
         row = layout.rowCount()
 
-        layout.addWidget(QtGui.QLabel(parameter.name), row, 0,
+        layout.addWidget(QtWidgets.QLabel(parameter.name), row, 0,
                          QtCore.Qt.AlignRight)
 
-        sb = QtGui.QDoubleSpinBox()
+        sb = QtWidgets.QDoubleSpinBox()
         sb.valueChanged.connect(self.updatedPars.emit)
         sb.setRange(-np.inf, np.inf)
         if parameter.value is not None:
@@ -51,7 +57,7 @@ class ParameterGrid(QtGui.QWidget):
 
         layout.addWidget(sb, row, 1)
 
-        sb = QtGui.QDoubleSpinBox()
+        sb = QtWidgets.QDoubleSpinBox()
         sb.valueChanged.connect(self.updatedPars.emit)
         sb.setRange(-np.inf, np.inf)
         if parameter.min is not None:
@@ -59,7 +65,7 @@ class ParameterGrid(QtGui.QWidget):
 
         layout.addWidget(sb, row, 2)
 
-        sb = QtGui.QDoubleSpinBox()
+        sb = QtWidgets.QDoubleSpinBox()
         sb.valueChanged.connect(self.updatedPars.emit)
         sb.setRange(-np.inf, np.inf)
         if parameter.max is not None:
@@ -67,7 +73,7 @@ class ParameterGrid(QtGui.QWidget):
 
         layout.addWidget(sb, row, 3)
 
-        cb = QtGui.QCheckBox()
+        cb = QtWidgets.QCheckBox()
         cb.stateChanged.connect(self.updatedPars.emit)
         cb.setChecked(not parameter.vary)
         layout.addWidget(cb, row, 4, QtCore.Qt.AlignCenter)
@@ -91,24 +97,24 @@ class ParameterGrid(QtGui.QWidget):
         return values
 
 
-class ParameterWidget(QtGui.QWidget):
+class ParameterWidget(QtWidgets.QWidget):
     guessClicked = QtCore.Signal()
     valueChanged = QtCore.Signal()
 
     def __init__(self, parameters, parent=None):
         super(ParameterWidget, self).__init__(parent=parent)
 
-        layout = QtGui.QVBoxLayout()
+        layout = QtWidgets.QVBoxLayout()
 
         self.parGrid = ParameterGrid(parameters, parent=self)
         self.parGrid.updatedPars.connect(self.valueChanged.emit)
-        self.parGrid.setSizePolicy(QtGui.QSizePolicy.MinimumExpanding,
-                                   QtGui.QSizePolicy.MinimumExpanding)
+        self.parGrid.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding,
+                                   QtWidgets.QSizePolicy.MinimumExpanding)
         layout.addWidget(self.parGrid)
 
-        guessButton = QtGui.QPushButton('&Guess')
+        guessButton = QtWidgets.QPushButton('&Guess')
         guessButton.clicked.connect(self.guessClicked.emit)
-        buttonBox = QtGui.QHBoxLayout()
+        buttonBox = QtWidgets.QHBoxLayout()
         buttonBox.addStretch(1)
         buttonBox.addWidget(guessButton)
 
@@ -121,8 +127,8 @@ class ParameterWidget(QtGui.QWidget):
         self.layout().removeWidget(self.parGrid)
         self.parGrid = ParameterGrid(parameters)
         self.parGrid.updatedPars.connect(self.valueChanged.emit)
-        self.parGrid.setSizePolicy(QtGui.QSizePolicy.MinimumExpanding,
-                                   QtGui.QSizePolicy.MinimumExpanding)
+        self.parGrid.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding,
+                                   QtWidgets.QSizePolicy.MinimumExpanding)
         self.layout().insertWidget(0, self.parGrid)
         self.children()[idx].setParent(None)
 

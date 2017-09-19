@@ -17,12 +17,20 @@ from .axis_pan import AxisPan
 from .icons import get_icon
 from .fit_widget import FitWidget
 
+# needed for compatibility with PyQt5
+QFont = QtGui.QFont
+
+try:
+    from matplotlib.backends.qt_compat import QtWidgets
+except ImportError:
+    QtWidgets = QtGui
+
 
 def gauss_function(x, a, x0, sigma):
     return a / (sigma * np.sqrt(2 * np.pi)) * np.exp(-((x - x0))**2 / (2 * sigma**2))
 
 
-class NavigationToolbar(QtGui.QToolBar):
+class NavigationToolbar(QtWidgets.QToolBar):
     """
     Toolbar which replaces the one which is shipped with matplotlib.
     Currently supports:
@@ -169,7 +177,7 @@ class NavigationToolbar(QtGui.QToolBar):
                                    minspan=0.001, color='w')
 
     def _right_click(self, event):
-        menu = QtGui.QMenu()
+        menu = QtWidgets.QMenu()
         sub_menus = []
         add_these = []
 
@@ -227,7 +235,7 @@ class NavigationToolbar(QtGui.QToolBar):
         self._update_view()
 
     def set_history_buttons(self):
-        """Activate/Deactivate history buttons according to their availability"""
+        """(De)Activate history buttons according to their availability"""
         n = len(self._views)
         p = self._views._pos
         if n < 2:
@@ -297,7 +305,7 @@ class NavigationToolbar(QtGui.QToolBar):
         self._fitWidget.show()
 
 
-class SubMenu(QtGui.QMenu):
+class SubMenu(QtWidgets.QMenu):
     def __init__(self, artist, parent=None, *args, **kw):
         self.artist = artist
         self.parent = parent
@@ -359,8 +367,8 @@ class SubMenu(QtGui.QMenu):
         self.parent.canvas.draw()
 
     def edit_text(self, getter, setter):
-        text, ok = QtGui.QInputDialog.getText(self, 'Edit Text', 'Text:',
-                                              text=getter())
+        text, ok = QtWidgets.QInputDialog.getText(self, 'Edit Text', 'Text:',
+                                                  text=getter())
         if ok:
             setter(text)
             self.parent.canvas.draw()
@@ -378,7 +386,8 @@ class SubMenu(QtGui.QMenu):
         self.parent.canvas.draw()
 
     def font(self):
-        font, ok = QtGui.QFontDialog.getFont(_convert_font_toQT(self.artist.get_fontproperties()), self)
+        qt_font = _convert_font_toQT(self.artist.get_fontproperties())
+        font, ok = QtWidgets.QFontDialog.getFont(qt_font, self)
 
         if ok:
             self.artist.set_fontproperties(_convert_font_fromQT(font))
@@ -387,8 +396,8 @@ class SubMenu(QtGui.QMenu):
     def color(self):
         from matplotlib.colors import colorConverter
         rgbf = colorConverter.to_rgba(self.artist.get_color())
-        initial = QtGui.QColor.fromRgbF(rgbf[0], rgbf[1], rgbf[2], rgbf[3])
-        color = QtGui.QColorDialog().getColor(initial)
+        initial = QtWidgets.QColor.fromRgbF(rgbf[0], rgbf[1], rgbf[2], rgbf[3])
+        color = QtWidgets.QColorDialog().getColor(initial)
 
         if color.isValid():
             self.artist.set_color(color.getRgbF())
@@ -429,7 +438,7 @@ def _convert_font_fromQT(font):
 
 
 def _convert_font_toQT(font):
-    fontQT = QtGui.QFont()
+    fontQT = QFont()
     fontQT.setFamily(font.get_family()[0])
     fontQT.setPointSize(round(font.get_size_in_points()))
     style_enum = ['normal', 'italic', 'oblique']

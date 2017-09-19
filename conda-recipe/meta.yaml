@@ -1,12 +1,12 @@
 package:
   name: mplwidget
-  version: 0.1.2
+  version: 0.1.3
 
 source:
   git_url: https://github.com/cstrandhagen/mplwidget.git
 
 build:
-  number: 2
+  number: 3
   #preserve_egg_dir: True
 
 requirements:

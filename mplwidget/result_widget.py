@@ -6,6 +6,12 @@ Created on Feb 18, 2015
 
 from matplotlib.backends.qt_compat import QtCore, QtGui
 
+# needed for compatibility with PyQt5
+try:
+    from matplotlib.backends.qt_compat import QtWidgets
+except ImportError:
+    QtWidgets = QtGui
+
 
 class ResultContainer(object):
     def __init__(self, result, name='', plot=None, component_plots=None):
@@ -59,7 +65,7 @@ class ResultContainer(object):
         return self.result.eval_components(*args, **kwargs)
 
 
-class ResultWidget(QtGui.QWidget):
+class ResultWidget(QtWidgets.QWidget):
     componentsToggled = QtCore.Signal(bool)
     removed = QtCore.Signal(str)
 
@@ -68,27 +74,27 @@ class ResultWidget(QtGui.QWidget):
 
         super(ResultWidget, self).__init__(parent=parent)
 
-        layout = QtGui.QHBoxLayout()
+        layout = QtWidgets.QHBoxLayout()
 
-        self.resultList = QtGui.QListWidget()
+        self.resultList = QtWidgets.QListWidget()
         self.resultList.itemClicked.connect(self.update_buttons)
         layout.addWidget(self.resultList, stretch=1)
 
-        buttonBox = QtGui.QVBoxLayout()
+        buttonBox = QtWidgets.QVBoxLayout()
         buttonBox.addStretch(1)
 
-        self.compCheck = QtGui.QCheckBox()
+        self.compCheck = QtWidgets.QCheckBox()
         self.compCheck.setText('Show components')
         self.compCheck.setEnabled(False)
         self.compCheck.toggled.connect(self.toggle_components)
         buttonBox.addWidget(self.compCheck)
 
-        self.removeButton = QtGui.QPushButton('&Remove')
+        self.removeButton = QtWidgets.QPushButton('&Remove')
         self.removeButton.setEnabled(False)
         self.removeButton.clicked.connect(self.remove_result)
         buttonBox.addWidget(self.removeButton)
 
-        self.showButton = QtGui.QPushButton('Show/Hide')
+        self.showButton = QtWidgets.QPushButton('Show/Hide')
         self.showButton.setEnabled(False)
         self.showButton.clicked.connect(self.toggle_plot)
         buttonBox.addWidget(self.showButton)
