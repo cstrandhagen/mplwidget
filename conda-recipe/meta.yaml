@@ -6,7 +6,7 @@ source:
   git_url: https://github.com/cstrandhagen/mplwidget.git
 
 build:
-  number: 3
+  number: 4
   #preserve_egg_dir: True
 
 requirements:

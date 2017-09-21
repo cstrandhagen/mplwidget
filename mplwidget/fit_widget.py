@@ -406,7 +406,7 @@ class FitWidget(QtWidgets.QDialog):
             self.range_ = Range(dlg.xmin, dlg.xmax)
 
         dlg.accepted.connect(cb)
-        dlg.setModal(True)
+        # dlg.setModal(True)
         dlg.show()
 
 

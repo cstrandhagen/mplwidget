@@ -24,18 +24,47 @@ MODELS.update(model_dict)
 
 
 def get_required_args(func):
+    '''
+    Get required arguments of a function by inspecting the signature.
+
+    Parameters
+    ----------
+    func : function
+        A python function.
+
+    Returns
+    -------
+    required_args : list(str)
+        Names of the required function arguments.
+    '''
     argspec = inspect.getargspec(func)
 
+    # argspec[0] gives a list of all arguments
+    # this list includes optional arguments which are at the end of the list
     required_args = argspec[0]
+
+    # argspec[3] is a list of default values
+    # cutting of the last n arguments (where n is the number of default values)
+    # leaves only the required arguments
     if argspec[3] is not None:
         required_args = required_args[:-len(argspec[3])]
 
+    # for class methods 'self' is a required argument and has to be removed
     required_args.remove('self')
 
     return required_args
 
 
 def generate_prefix(model, used_prefixes=[]):
+    '''
+    Generate a new model prefix from the model name.
+
+    Model prefixes have the form of "L#_" where "L" is the first letter
+    of the model name and "#" is a number starting from 0. To prevent
+    duplicates a list of used prefixes can be supplied. Prefixes are
+    created starting from 0 and if the prefix is already in that list,
+    the number is increased by 1 until a unique prefix is found.
+    '''
     template = model.name.lstrip('Model').strip('()')[0] + '{0}_'
 
     i = 0
@@ -47,55 +76,90 @@ def generate_prefix(model, used_prefixes=[]):
         i += 1
 
 
-def update_prefix(model, prefix):
-    old_prefix = model.prefix
-
-    for param, hint in model.param_hints.items():
-        try:
-            expr = hint['expr']
-
-            for name in model.param_names:
-                if name in expr:
-                    expr = expr.replace(name, prefix + name.lstrip(old_prefix))
-
-            hint['expr'] = expr
-        except KeyError:
-            pass
-
-    model.prefix = prefix
-
-
 def add_models(model1, model2):
+    '''
+    Add model2 to model1.
+
+    Model1 may be a composite model, model2 must not be a composite model.
+
+    Parameters
+    ----------
+    model1 : lmfit.Model
+        lmfit fit model (may be composite)
+    model2 : lmfit.Model
+        lmfit fit model (must not be composite!)
+
+    Returns
+    -------
+    model : lmfit.Model
+        A composite lmfit fit model.
+    '''
     if model1 is None:
         return model2
 
-    clash_found = False
-    # get list of used prefixes
-    prefixes = [c.prefix for c in model1.components]
+    # get list of already used prefixes, needed to create new prefixes
+    prefixes = [comp.prefix for comp in model1.components]
 
-    # check if root parameter name clashes
-    for c in model1.components:
-        if not set(c._param_root_names).isdisjoint(model2._param_root_names):
-            clash_found = True
+    # extract root parameter names of model2 to check for duplicate names
+    mod2_params = set(model2._param_root_names)
 
-            if c.prefix == '':
-                prefix = generate_prefix(c, prefixes)
-                update_prefix(c, prefix)
-                prefixes.append(prefix)
+    # check if the root parameter names of model2 already occur in the
+    # components of model1
+    for comp in model1.components:
+        if not mod2_params.isdisjoint(comp._param_root_names):
+            # at least one of the parameter names exists in both models
+            # create a new prefix for model2 and add it to the list of
+            # already used prefixes
+            prefix = generate_prefix(model2, prefixes)
+            prefixes += [prefix]
 
-    if clash_found:
-        prefix = generate_prefix(model2, prefixes)
-        update_prefix(model2, prefix)
+            # since somehow the prefix of an existing model cannot be changed,
+            # recreate a model of the same class with the new prefix
+            model2 = model2.__class__(prefix=prefix)
 
-    return model1 + model2
+            # no need to check additional components since we already now there
+            # is a duplicate and the prefix is added to model2
+            break
+
+    # the goal is that all models with duplicate parameter names have a prefix
+    # so we still need to check if all components of model1 with duplicate
+    # parameter names already have a prefix and add one if this is not the case
+    for comp in model1.components:
+        # check if there are duplicate parameter names
+        if not mod2_params.isdisjoint(comp._param_root_names):
+            if comp.prefix == '':
+                # the component does not have a prefix yet, so add one
+                prefix = generate_prefix(comp, prefixes)
+                prefixes += [prefix]
+                comp = comp.__class__(prefix=prefix)
+
+        model2 += comp
+
+    return model2
 
 
 def remove_component(model, component):
+    '''
+    Remove component from a composite lmfit model.
+
+    Works by recreating the model by adding the individual
+    components back together and omitting the component we
+    want to remove.
+
+    Parameters
+    ----------
+    model : lmfit.Model
+        A (composite) lmfit fit model.
+    component : lmfit.Model
+        lmfit model component to remove.
+
+    Returns
+    -------
+    model : lmfit.Model
+        The original fit model without the component.
+    '''
     if component not in model.components:
         return model
-
-    if len(model.components) == 1:
-        return None
 
     component_list = model.components[:]
     component_list.remove(component)
@@ -275,7 +339,7 @@ class ModelWidget(QtWidgets.QDialog):
                                                      exc.message)
 
             QtWidgets.QMessageBox.critical(self, 'Ooops...', message)
-            self.add()
+            # self.add()
 
     def model_selected(self, model_name):
         self._currentSelection = str(model_name)
